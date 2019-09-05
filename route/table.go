@@ -369,7 +369,7 @@ func (t Table) Lookup(req *http.Request, trace string, pick picker, match matche
 		if len(trace) > 16 {
 			trace = trace[:15]
 		}
-		log.Printf("[TRACE] %s Tracing %s%s", trace, req.Host, req.URL.Path)
+		log.Printf("[TRACE] %s Tracing %s%s", trace, req.Host, req.RequestURI)
 	}
 
 	// find matching hosts for the request
@@ -387,13 +387,13 @@ func (t Table) Lookup(req *http.Request, trace string, pick picker, match matche
 	}
 	hosts = append(hosts, "")
 	for _, h := range hosts {
-		if target = t.lookup(h, req.URL.Path, trace, pick, match); target != nil {
+		if target = t.lookup(h, req.RequestURI, trace, pick, match); target != nil {
 			if target.RedirectCode != 0 {
 				req.URL.Host = req.Host
 				target.BuildRedirectURL(req.URL) // build redirect url and cache in target
 				if target.RedirectURL.Scheme == req.Header.Get("X-Forwarded-Proto") &&
 					target.RedirectURL.Host == req.Host &&
-					target.RedirectURL.Path == req.URL.Path {
+					target.RedirectURL.Path == req.RequestURI {
 					log.Print("[INFO] Skipping redirect with same scheme, host and path")
 					continue
 				}

@@ -511,46 +511,46 @@ func TestTableLookupIssue448(t *testing.T) {
 	}{
 		{
 			req: &http.Request{
-				Host: "foo.com",
-				URL:  mustParse("/"),
+				Host:       "foo.com",
+				RequestURI: mustParse("/"),
 			},
 			dst: "https://foo.com/",
 			// empty upstream header should follow redirect - standard behavior
 		},
 		{
 			req: &http.Request{
-				Host:   "foo.com",
-				URL:    mustParse("/"),
-				Header: http.Header{"X-Forwarded-Proto": {"http"}},
+				Host:       "foo.com",
+				RequestURI: mustParse("/"),
+				Header:     http.Header{"X-Forwarded-Proto": {"http"}},
 			},
 			dst: "https://foo.com/",
 			// upstream http request to same host and path should follow redirect
 		},
 		{
 			req: &http.Request{
-				Host:   "foo.com",
-				URL:    mustParse("/"),
-				Header: http.Header{"X-Forwarded-Proto": {"https"}},
-				TLS:    &tls.ConnectionState{},
+				Host:       "foo.com",
+				RequestURI: mustParse("/"),
+				Header:     http.Header{"X-Forwarded-Proto": {"https"}},
+				TLS:        &tls.ConnectionState{},
 			},
 			dst: "http://foo.com/",
 			// upstream https request to same host and path should NOT follow redirect"
 		},
 		{
 			req: &http.Request{
-				Host:   "aaa.com",
-				URL:    mustParse("/"),
-				Header: http.Header{"X-Forwarded-Proto": {"http"}},
+				Host:       "aaa.com",
+				RequestURI: mustParse("/"),
+				Header:     http.Header{"X-Forwarded-Proto": {"http"}},
 			},
 			dst: "http://bbb.com/",
 			// upstream http request to different http host should follow redirect
 		},
 		{
 			req: &http.Request{
-				Host:   "ccc.com",
-				URL:    mustParse("/bar"),
-				Header: http.Header{"X-Forwarded-Proto": {"https"}},
-				TLS:    &tls.ConnectionState{},
+				Host:       "ccc.com",
+				RequestURI: mustParse("/bar"),
+				Header:     http.Header{"X-Forwarded-Proto": {"https"}},
+				TLS:        &tls.ConnectionState{},
 			},
 			dst: "https://ccc.com/baz",
 			// upstream https request to same https host with different path should follow redirect"
@@ -592,45 +592,45 @@ func TestTableLookup(t *testing.T) {
 		globEnabled bool
 	}{
 		// match on host and path with and without trailing slash
-		{&http.Request{Host: "abc.com", URL: mustParse("/")}, "http://foo.com:1000", globEnabled},
-		{&http.Request{Host: "abc.com", URL: mustParse("/bar")}, "http://foo.com:1000", globEnabled},
-		{&http.Request{Host: "abc.com", URL: mustParse("/foo")}, "http://foo.com:1500", globEnabled},
-		{&http.Request{Host: "abc.com", URL: mustParse("/foo/")}, "http://foo.com:2000", globEnabled},
-		{&http.Request{Host: "abc.com", URL: mustParse("/foo/bar")}, "http://foo.com:2500", globEnabled},
-		{&http.Request{Host: "abc.com", URL: mustParse("/foo/bar/")}, "http://foo.com:3000", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/"}, "http://foo.com:1000", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/bar"}, "http://foo.com:1000", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/foo"}, "http://foo.com:1500", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/foo/"}, "http://foo.com:2000", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/foo/bar"}, "http://foo.com:2500", globEnabled},
+		{&http.Request{Host: "abc.com", RequestURI: "/foo/bar/"}, "http://foo.com:3000", globEnabled},
 
 		// do not match on host but maybe on path
-		{&http.Request{Host: "def.com", URL: mustParse("/")}, "http://foo.com:800", globEnabled},
-		{&http.Request{Host: "def.com", URL: mustParse("/bar")}, "http://foo.com:800", globEnabled},
-		{&http.Request{Host: "def.com", URL: mustParse("/foo")}, "http://foo.com:900", globEnabled},
+		{&http.Request{Host: "def.com", RequestURI: "/"}, "http://foo.com:800", globEnabled},
+		{&http.Request{Host: "def.com", RequestURI: "/bar"}, "http://foo.com:800", globEnabled},
+		{&http.Request{Host: "def.com", RequestURI: "/foo"}, "http://foo.com:900", globEnabled},
 
 		// strip default port
-		{&http.Request{Host: "abc.com:80", URL: mustParse("/")}, "http://foo.com:1000", globEnabled},
-		{&http.Request{Host: "abc.com:443", URL: mustParse("/"), TLS: &tls.ConnectionState{}}, "http://foo.com:1000", globEnabled},
+		{&http.Request{Host: "abc.com:80", RequestURI: "/"}, "http://foo.com:1000", globEnabled},
+		{&http.Request{Host: "abc.com:443", RequestURI: "/", TLS: &tls.ConnectionState{}}, "http://foo.com:1000", globEnabled},
 
 		// not using default port
-		{&http.Request{Host: "abc.com:443", URL: mustParse("/")}, "http://foo.com:800", globEnabled},
-		{&http.Request{Host: "abc.com:80", URL: mustParse("/"), TLS: &tls.ConnectionState{}}, "http://foo.com:800", globEnabled},
+		{&http.Request{Host: "abc.com:443", RequestURI: "/"}, "http://foo.com:800", globEnabled},
+		{&http.Request{Host: "abc.com:80", RequestURI: "/", TLS: &tls.ConnectionState{}}, "http://foo.com:800", globEnabled},
 
 		// glob match the host
-		{&http.Request{Host: "x.abc.com", URL: mustParse("/")}, "http://foo.com:4000", globEnabled},
-		{&http.Request{Host: "y.abc.com", URL: mustParse("/abc")}, "http://foo.com:4000", globEnabled},
-		{&http.Request{Host: "x.abc.com", URL: mustParse("/foo/")}, "http://foo.com:5000", globEnabled},
-		{&http.Request{Host: "y.abc.com", URL: mustParse("/foo/")}, "http://foo.com:5000", globEnabled},
-		{&http.Request{Host: ".abc.com", URL: mustParse("/foo/")}, "http://foo.com:5000", globEnabled},
-		{&http.Request{Host: "x.y.abc.com", URL: mustParse("/foo/")}, "http://foo.com:5000", globEnabled},
-		{&http.Request{Host: "y.abc.com:80", URL: mustParse("/foo/")}, "http://foo.com:5000", globEnabled},
-		{&http.Request{Host: "x.aaa.abc.com", URL: mustParse("/")}, "http://foo.com:6000", globEnabled},
-		{&http.Request{Host: "x.aaa.abc.com", URL: mustParse("/foo")}, "http://foo.com:6000", globEnabled},
-		{&http.Request{Host: "x.bbb.abc.com", URL: mustParse("/")}, "http://foo.com:6100", globEnabled},
-		{&http.Request{Host: "x.bbb.abc.com", URL: mustParse("/foo")}, "http://foo.com:6100", globEnabled},
-		{&http.Request{Host: "y.abc.com:443", URL: mustParse("/foo/"), TLS: &tls.ConnectionState{}}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: "x.abc.com", RequestURI: "/"}, "http://foo.com:4000", globEnabled},
+		{&http.Request{Host: "y.abc.com", RequestURI: "/abc"}, "http://foo.com:4000", globEnabled},
+		{&http.Request{Host: "x.abc.com", RequestURI: "/foo/"}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: "y.abc.com", RequestURI: "/foo/"}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: ".abc.com", RequestURI: "/foo/"}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: "x.y.abc.com", RequestURI: "/foo/"}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: "y.abc.com:80", RequestURI: "/foo/"}, "http://foo.com:5000", globEnabled},
+		{&http.Request{Host: "x.aaa.abc.com", RequestURI: "/"}, "http://foo.com:6000", globEnabled},
+		{&http.Request{Host: "x.aaa.abc.com", RequestURI: "/foo"}, "http://foo.com:6000", globEnabled},
+		{&http.Request{Host: "x.bbb.abc.com", RequestURI: "/"}, "http://foo.com:6100", globEnabled},
+		{&http.Request{Host: "x.bbb.abc.com", RequestURI: "/foo"}, "http://foo.com:6100", globEnabled},
+		{&http.Request{Host: "y.abc.com:443", RequestURI: "/foo/", TLS: &tls.ConnectionState{}}, "http://foo.com:5000", globEnabled},
 
 		// exact match has precedence over glob match
-		{&http.Request{Host: "z.abc.com", URL: mustParse("/foo/")}, "http://foo.com:3100", globEnabled},
+		{&http.Request{Host: "z.abc.com", RequestURI: "/foo/"}, "http://foo.com:3100", globEnabled},
 
 		// explicit port on route
-		{&http.Request{Host: "xyz.com", URL: mustParse("/")}, "https://xyz.com", globEnabled},
+		{&http.Request{Host: "xyz.com", RequestURI: "/"}, "https://xyz.com", globEnabled},
 	}
 
 	for i, tt := range tests {
