@@ -358,6 +358,10 @@ func initMetrics(cfg *config.Config) {
 			route.ServiceRegistry, err = metrics.NewRegistry(cfg.Metrics)
 		}
 		if err == nil {
+			route.RouteRegistry, err = metrics.NewRegistry(cfg.Metrics)
+		}
+		if err == nil {
+			route.RouteCounter = route.RouteRegistry.GetCounter("routes")
 			return
 		}
 		if time.Now().After(deadline) {

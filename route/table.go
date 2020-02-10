@@ -26,9 +26,26 @@ var table atomic.Value
 // ServiceRegistry stores the metrics for the services.
 var ServiceRegistry metrics.Registry = metrics.NoopRegistry{}
 
+// RouteRegistry stores route count metrics.
+var RouteRegistry metrics.Registry = metrics.NoopRegistry{}
+
+// RouteCounter gauges the current route count for metric emission.
+var RouteCounter metrics.Counter
+var currentRouteCount int
+
 // init initializes the routing table.
 func init() {
 	table.Store(make(Table))
+}
+
+func incrementRouteCountMetric() {
+	currentRouteCount++
+	RouteCounter.Inc(1)
+}
+
+func clearRouteCountMetric() {
+	RouteCounter.Inc(-int64(currentRouteCount))
+	currentRouteCount = 0 // reset route count
 }
 
 // GetTable returns the active routing table. The function
@@ -114,6 +131,8 @@ func NewTable(s string) (t Table, err error) {
 		return nil, err
 	}
 
+	clearRouteCountMetric()
+
 	t = make(Table)
 	for _, d := range defs {
 		switch d.Cmd {
@@ -150,6 +169,8 @@ func (t Table) addRoute(d *RouteDef) error {
 	if err != nil {
 		return fmt.Errorf("route: invalid target. %s", err)
 	}
+
+	incrementRouteCountMetric()
 
 	switch {
 	// add new host
