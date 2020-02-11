@@ -29,8 +29,8 @@ var ServiceRegistry metrics.Registry = metrics.NoopRegistry{}
 // RouteRegistry stores route count metrics.
 var RouteRegistry metrics.Registry = metrics.NoopRegistry{}
 
-// RouteCounter gauges the current route count for metric emission.
-var RouteCounter metrics.Counter
+// RouteGauge gauges the current route count for metric emission.
+var RouteGauge metrics.Gauge
 var currentRouteCount int
 
 // init initializes the routing table.
@@ -39,13 +39,13 @@ func init() {
 }
 
 func incrementRouteCountMetric() {
-	currentRouteCount++
-	RouteCounter.Inc(1)
+	currentRouteCount++ // increment route count
+	RouteGauge.Update(int64(currentRouteCount))
 }
 
 func clearRouteCountMetric() {
-	RouteCounter.Inc(-int64(currentRouteCount))
 	currentRouteCount = 0 // reset route count
+	RouteGauge.Update(int64(currentRouteCount))
 }
 
 // GetTable returns the active routing table. The function
