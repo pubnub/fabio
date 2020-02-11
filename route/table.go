@@ -40,11 +40,15 @@ func init() {
 
 func incrementRouteCountMetric() {
 	currentRouteCount++ // increment route count
-	RouteGauge.Update(int64(currentRouteCount))
+	updateRouteCountGauge()
 }
 
 func clearRouteCountMetric() {
 	currentRouteCount = 0 // reset route count
+	updateRouteCountGauge()
+}
+
+func updateRouteCountGauge() {
 	RouteGauge.Update(int64(currentRouteCount))
 }
 
