@@ -26,11 +26,6 @@ var table atomic.Value
 // ServiceRegistry stores the metrics for the services.
 var ServiceRegistry metrics.Registry = metrics.NoopRegistry{}
 
-// RouteRegistry stores route count metrics.
-var RouteRegistry metrics.Registry = metrics.NoopRegistry{}
-
-// RouteGauge gauges the current route count for metric emission.
-var RouteGauge metrics.Gauge
 var currentRouteCount int
 
 // init initializes the routing table.
@@ -49,7 +44,7 @@ func clearRouteCountMetric() {
 }
 
 func updateRouteCountGauge() {
-	RouteGauge.Update(int64(currentRouteCount))
+	metrics.DefaultRegistry.GetGauge("fabio.routes").Update(int64(currentRouteCount))
 }
 
 // GetTable returns the active routing table. The function

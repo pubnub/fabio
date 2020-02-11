@@ -358,10 +358,6 @@ func initMetrics(cfg *config.Config) {
 			route.ServiceRegistry, err = metrics.NewRegistry(cfg.Metrics)
 		}
 		if err == nil {
-			route.RouteRegistry, err = metrics.NewRegistry(cfg.Metrics)
-		}
-		if err == nil {
-			route.RouteGauge = route.RouteRegistry.GetGauge("fabio.routes")
 			return
 		}
 		if time.Now().After(deadline) {
