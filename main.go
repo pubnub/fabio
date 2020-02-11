@@ -361,7 +361,7 @@ func initMetrics(cfg *config.Config) {
 			route.RouteRegistry, err = metrics.NewRegistry(cfg.Metrics)
 		}
 		if err == nil {
-			route.RouteCounter = route.RouteRegistry.GetCounter("routes")
+			route.RouteCounter = route.RouteRegistry.GetCounter("fabio.routes")
 			return
 		}
 		if time.Now().After(deadline) {
