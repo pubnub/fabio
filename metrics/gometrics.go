@@ -80,6 +80,10 @@ func (p *gmRegistry) GetCounter(name string) Counter {
 	return gm.GetOrRegisterCounter(name, p.r)
 }
 
+func (p *gmRegistry) GetGauge(name string) Gauge {
+	return gm.GetOrRegisterGauge(name, p.r)
+}
+
 func (p *gmRegistry) GetTimer(name string) Timer {
 	return gm.GetOrRegisterTimer(name, p.r)
 }

@@ -13,6 +13,8 @@ func (p NoopRegistry) UnregisterAll() {}
 
 func (p NoopRegistry) GetCounter(name string) Counter { return noopCounter }
 
+func (p NoopRegistry) GetGauge(name string) Gauge { return noopGauge }
+
 func (p NoopRegistry) GetTimer(name string) Timer { return noopTimer }
 
 var noopCounter = NoopCounter{}
@@ -21,6 +23,13 @@ var noopCounter = NoopCounter{}
 type NoopCounter struct{}
 
 func (c NoopCounter) Inc(n int64) {}
+
+var noopGauge = NoopGauge{}
+
+// NoopGauge is a stub implementation of the Gauge interface.
+type NoopGauge struct{}
+
+func (g NoopGauge) Update(n int64) {}
 
 var noopTimer = NoopTimer{}
 

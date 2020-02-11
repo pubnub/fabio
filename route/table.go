@@ -26,9 +26,25 @@ var table atomic.Value
 // ServiceRegistry stores the metrics for the services.
 var ServiceRegistry metrics.Registry = metrics.NoopRegistry{}
 
+var currentRouteCount int
+
 // init initializes the routing table.
 func init() {
 	table.Store(make(Table))
+}
+
+func incrementRouteCountMetric() {
+	currentRouteCount++ // increment route count
+	updateRouteCountGauge()
+}
+
+func clearRouteCountMetric() {
+	currentRouteCount = 0 // reset route count
+	updateRouteCountGauge()
+}
+
+func updateRouteCountGauge() {
+	metrics.DefaultRegistry.GetGauge("fabio.routes").Update(int64(currentRouteCount))
 }
 
 // GetTable returns the active routing table. The function
@@ -114,6 +130,8 @@ func NewTable(s string) (t Table, err error) {
 		return nil, err
 	}
 
+	clearRouteCountMetric()
+
 	t = make(Table)
 	for _, d := range defs {
 		switch d.Cmd {
@@ -150,6 +168,8 @@ func (t Table) addRoute(d *RouteDef) error {
 	if err != nil {
 		return fmt.Errorf("route: invalid target. %s", err)
 	}
+
+	incrementRouteCountMetric()
 
 	switch {
 	// add new host

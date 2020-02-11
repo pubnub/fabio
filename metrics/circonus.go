@@ -90,6 +90,12 @@ func (m *cgmRegistry) GetCounter(name string) Counter {
 	return &cgmCounter{m.metrics, metricName}
 }
 
+// GetGauge returns a gauge for the given metric name.
+func (m *cgmRegistry) GetGauge(name string) Gauge {
+	metricName := fmt.Sprintf("%s`$s", m.prefix, name)
+	return &cgmGauge{m.metrics, metricName}
+}
+
 // GetTimer returns a timer for the given metric name.
 func (m *cgmRegistry) GetTimer(name string) Timer {
 	metricName := fmt.Sprintf("%s`%s", m.prefix, name)
@@ -99,6 +105,16 @@ func (m *cgmRegistry) GetTimer(name string) Timer {
 type cgmCounter struct {
 	metrics *cgm.CirconusMetrics
 	name    string
+}
+
+type cgmGauge struct {
+	metrics *cgm.CirconusMetrics
+	name    string
+}
+
+// Gauge updates the gauge to n.
+func (c *cgmGauge) Update(n int64) {
+	c.metrics.Gauge(c.name, uint64(n))
 }
 
 // Inc increases the counter by n.

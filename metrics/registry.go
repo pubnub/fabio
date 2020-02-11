@@ -25,6 +25,11 @@ type Registry interface {
 	// otherwise the existing metric should be returned.
 	GetCounter(name string) Counter
 
+	// GetGauge returns a gauge metric for the given name.
+	// If the metric does not exist yet it should be created
+	// otherwise the existing metric should be returned.
+	GetGauge(name string) Gauge
+
 	// GetTimer returns a timer metric for the given name.
 	// If the metric does not exist yet it should be created
 	// otherwise the existing metric should be returned.
@@ -35,6 +40,11 @@ type Registry interface {
 type Counter interface {
 	// Inc increases the counter value by 'n'.
 	Inc(n int64)
+}
+
+// Gauge defines a metric for gauging events.
+type Gauge interface {
+	Update(n int64)
 }
 
 // Timer defines a metric for counting and timing durations for events.
