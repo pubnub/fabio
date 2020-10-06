@@ -34,37 +34,74 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var hosts []string
-	for host := range t {
-		hosts = append(hosts, host)
+	var hostFilter *string
+	var pathFilter *string
+	var tagFilter *string
+
+	if param, ok := r.URL.Query()["host"]; ok {
+		hostFilter = &param[0]
 	}
-	sort.Strings(hosts)
+
+	if param, ok := r.URL.Query()["path"]; ok {
+		pathFilter = &param[0]
+	}
+
+	if param, ok := r.URL.Query()["tag"]; ok {
+		tagFilter = &param[0]
+	}
+
+	var hosts []string
+
+	if hostFilter != nil {
+		hosts = append(hosts, *hostFilter)
+	} else {
+		for host := range t {
+			hosts = append(hosts, host)
+		}
+		sort.Strings(hosts)
+	}
 
 	var routes []apiRoute
+
 	for _, host := range hosts {
 		for _, tr := range t[host] {
-			for _, tg := range tr.Targets {
-				var opts []string
-				for k, v := range tg.Opts {
-					opts = append(opts, k+"="+v)
-				}
+			if pathFilter == nil || tr.Path == *pathFilter {
+				for _, tg := range tr.Targets {
 
-				ar := apiRoute{
-					Service: tg.Service,
-					Host:    tr.Host,
-					Path:    tr.Path,
-					Src:     tr.Host + tr.Path,
-					Dst:     tg.URL.String(),
-					Opts:    strings.Join(opts, " "),
-					Weight:  tg.Weight,
-					Tags:    tg.Tags,
-					Cmd:     "route add",
-					Rate1:   tg.Timer.Rate1(),
-					Pct99:   tg.Timer.Percentile(0.99),
+					if tagFilter == nil || stringInSlice(*tagFilter, tg.Tags) {
+						var opts []string
+						for k, v := range tg.Opts {
+							opts = append(opts, k+"="+v)
+						}
+
+						ar := apiRoute{
+							Service: tg.Service,
+							Host:    tr.Host,
+							Path:    tr.Path,
+							Src:     tr.Host + tr.Path,
+							Dst:     tg.URL.String(),
+							Opts:    strings.Join(opts, " "),
+							Weight:  tg.Weight,
+							Tags:    tg.Tags,
+							Cmd:     "route add",
+							Rate1:   tg.Timer.Rate1(),
+							Pct99:   tg.Timer.Percentile(0.99),
+						}
+						routes = append(routes, ar)
+					}
+
 				}
-				routes = append(routes, ar)
 			}
 		}
 	}
 	writeJSON(w, r, routes)
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
