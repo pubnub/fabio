@@ -34,21 +34,9 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var hostFilter *string
-	var pathFilter *string
-	var tagFilter *string
-
-	if param, ok := r.URL.Query()["host"]; ok {
-		hostFilter = &param[0]
-	}
-
-	if param, ok := r.URL.Query()["path"]; ok {
-		pathFilter = &param[0]
-	}
-
-	if param, ok := r.URL.Query()["tag"]; ok {
-		tagFilter = &param[0]
-	}
+	hostFilter := getFilterParameter(r, "host")
+	pathFilter := getFilterParameter(r, "path")
+	tagFilter := getFilterParameter(r, "tag")
 
 	var hosts []string
 
@@ -67,8 +55,7 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, tr := range t[host] {
 			if pathFilter == nil || tr.Path == *pathFilter {
 				for _, tg := range tr.Targets {
-
-					if tagFilter == nil || stringInSlice(*tagFilter, tg.Tags) {
+					if tagFilter == nil || tagsMatchFilter(tg.Tags, *tagFilter) {
 						var opts []string
 						for k, v := range tg.Opts {
 							opts = append(opts, k+"="+v)
@@ -97,9 +84,16 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, r, routes)
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
+func getFilterParameter(r *http.Request, key string) *string {
+	if param, ok := r.URL.Query()[key]; ok && len(param) > 0 {
+		return &param[0]
+	}
+	return nil
+}
+
+func tagsMatchFilter(tags []string, tagFilter string) bool {
+	for _, tag := range tags {
+		if tag == tagFilter {
 			return true
 		}
 	}
