@@ -53,9 +53,9 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, host := range hosts {
 		for _, tr := range t[host] {
-			if pathFilter == nil || tr.Path == *pathFilter {
+			if pathMatchesFilter(tr.Path, pathFilter) {
 				for _, tg := range tr.Targets {
-					if tagFilter == nil || tagsMatchFilter(tg.Tags, *tagFilter) {
+					if tagsMatchFilter(tg.Tags, tagFilter) {
 						var opts []string
 						for k, v := range tg.Opts {
 							opts = append(opts, k+"="+v)
@@ -91,9 +91,17 @@ func getFilterParameter(r *http.Request, key string) *string {
 	return nil
 }
 
-func tagsMatchFilter(tags []string, tagFilter string) bool {
+func pathMatchesFilter(path string, pathFilter *string) bool {
+	return pathFilter == nil || path == *pathFilter
+}
+
+func tagsMatchFilter(tags []string, tagFilter *string) bool {
+	if tagFilter == nil {
+		return true
+	}
+
 	for _, tag := range tags {
-		if tag == tagFilter {
+		if tag == *tagFilter {
 			return true
 		}
 	}
