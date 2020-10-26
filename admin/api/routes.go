@@ -34,37 +34,76 @@ func (h *RoutesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hostFilter := getFilterParameter(r, "host")
+	pathFilter := getFilterParameter(r, "path")
+	tagFilter := getFilterParameter(r, "tag")
+
 	var hosts []string
-	for host := range t {
-		hosts = append(hosts, host)
+
+	if hostFilter != nil {
+		hosts = append(hosts, *hostFilter)
+	} else {
+		for host := range t {
+			hosts = append(hosts, host)
+		}
+		sort.Strings(hosts)
 	}
-	sort.Strings(hosts)
 
 	var routes []apiRoute
+
 	for _, host := range hosts {
 		for _, tr := range t[host] {
-			for _, tg := range tr.Targets {
-				var opts []string
-				for k, v := range tg.Opts {
-					opts = append(opts, k+"="+v)
-				}
+			if pathMatchesFilter(tr.Path, pathFilter) {
+				for _, tg := range tr.Targets {
+					if tagsMatchFilter(tg.Tags, tagFilter) {
+						var opts []string
+						for k, v := range tg.Opts {
+							opts = append(opts, k+"="+v)
+						}
 
-				ar := apiRoute{
-					Service: tg.Service,
-					Host:    tr.Host,
-					Path:    tr.Path,
-					Src:     tr.Host + tr.Path,
-					Dst:     tg.URL.String(),
-					Opts:    strings.Join(opts, " "),
-					Weight:  tg.Weight,
-					Tags:    tg.Tags,
-					Cmd:     "route add",
-					Rate1:   tg.Timer.Rate1(),
-					Pct99:   tg.Timer.Percentile(0.99),
+						ar := apiRoute{
+							Service: tg.Service,
+							Host:    tr.Host,
+							Path:    tr.Path,
+							Src:     tr.Host + tr.Path,
+							Dst:     tg.URL.String(),
+							Opts:    strings.Join(opts, " "),
+							Weight:  tg.Weight,
+							Tags:    tg.Tags,
+							Cmd:     "route add",
+							Rate1:   tg.Timer.Rate1(),
+							Pct99:   tg.Timer.Percentile(0.99),
+						}
+						routes = append(routes, ar)
+					}
+
 				}
-				routes = append(routes, ar)
 			}
 		}
 	}
 	writeJSON(w, r, routes)
+}
+
+func getFilterParameter(r *http.Request, key string) *string {
+	if param, ok := r.URL.Query()[key]; ok && len(param) > 0 {
+		return &param[0]
+	}
+	return nil
+}
+
+func pathMatchesFilter(path string, pathFilter *string) bool {
+	return pathFilter == nil || path == *pathFilter
+}
+
+func tagsMatchFilter(tags []string, tagFilter *string) bool {
+	if tagFilter == nil {
+		return true
+	}
+
+	for _, tag := range tags {
+		if tag == *tagFilter {
+			return true
+		}
+	}
+	return false
 }
